@@ -1,173 +1,126 @@
-package mnj.ont.view.backing;
 
+package com.example.demo.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
-import javax.faces.context.ExternalContext;
-import javax.faces.context.FacesContext;
-import javax.faces.event.ActionEvent;
+@RestController
+@RequestMapping("/versions")
+public class VersionsController {
 
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+    private static final Logger logger = LoggerFactory.getLogger(VersionsController.class);
 
+    @Autowired
+    private VersionService versionService;
 
-import oracle.adf.model.BindingContext;
-import oracle.adf.model.binding.DCDataControl;
-import oracle.adf.view.rich.component.rich.input.RichInputListOfValues;
-import oracle.adf.view.rich.component.rich.input.RichInputText;
-
-import oracle.adf.view.rich.component.rich.layout.RichPanelHeader;
-
-import oracle.adf.view.rich.component.rich.nav.RichCommandLink;
-import oracle.adf.view.rich.component.rich.output.RichOutputText;
-
-import oracle.adf.view.rich.context.AdfFacesContext;
-import oracle.adf.view.rich.event.PopupCanceledEvent;
-import oracle.adf.view.rich.event.PopupFetchEvent;
-
-import oracle.binding.BindingContainer;
-
-import oracle.binding.OperationBinding;
-
-import oracle.jbo.ApplicationModule;
-import oracle.jbo.ViewObject;
-import oracle.jbo.domain.Number;
-
-import org.apache.myfaces.trinidad.render.ExtendedRenderKitService;
-import org.apache.myfaces.trinidad.util.Service;
-
-public class VersionsBean {
-    private RichInputText bomId;
-    private oracle.jbo.domain.Number scopeVariable;
-    private RichPanelHeader hederNo;
-    private RichInputListOfValues hederno2;
-    private RichOutputText showAttachText;
-
-    public VersionsBean() {
-        super();
+    @GetMapping("/bomId")
+    public String getBomId() {
+        return versionService.getBomId();
     }
 
-    public void setBomId(RichInputText bomId) {
-        this.bomId = bomId;
+    @PostMapping("/versionsAction")
+    public void versionsActionListener(@RequestParam("headerNo") String headerNo) {
+        logger.info("Value in bean ---> {}", headerNo);
+        versionService.setScopeVariable(headerNo);
+        logger.info("Scope variable set to ---> {}", versionService.getScopeVariable());
     }
 
-    public RichInputText getBomId() {
-        return bomId;
+    @GetMapping("/callAttachment")
+    public void callAttachment() throws IOException {
+        String doc = versionService.getCurrentBomNumber();
+        String newPage = "http://192.168.200.115:7003/FileUploading-ViewController-context-root/faces/view1?doc=CD_Invoice_No&docNo=" + doc;
+        logger.info("Opening new page: {}", newPage);
+        // Logic to open new page in the frontend can be handled by the client-side code
     }
-    
-    public void versionsActionListener(ActionEvent actionEvent) {
-        // Add event code here...
-        //#{pageFlowScope.TestPageFlowBean.versionsActionListener}
-        //#{pageFlowScope.testPageFlowBean.scopeVariable}
-        System.out.println("value in bean --->"+getHederno2().getValue());
-        setScopeVariable((oracle.jbo.domain.Number)getHederno2().getValue());
-        System.out.println("get value-->"+getScopeVariable());
-        
+
+    @PostMapping("/goPrAction")
+    public void goPrAction(HttpSession session, @RequestParam("headerNo") String headerNo) {
+        session.setAttribute("BOMNO", headerNo);
     }
-    public void setScopeVariable(Number scopeVariable) {
+
+    @PostMapping("/attachFetch")
+    @Transactional
+    public void attachFetchListener() {
+        Object methodReturnValue = versionService.getAttachments();
+        // Logic to update the UI with the fetched attachments
+    }
+
+    @PostMapping("/cancelListener")
+    public void cancelListener() {
+        // Logic for cancel listener
+    }
+}
+
+
+
+package com.example.demo.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class VersionService {
+
+    private String scopeVariable;
+
+    public String getBomId() {
+        // Logic to retrieve BOM ID
+        return "BOM_ID"; // Placeholder
+    }
+
+    public void setScopeVariable(String scopeVariable) {
         this.scopeVariable = scopeVariable;
     }
 
-    public Number getScopeVariable() {
+    public String getScopeVariable() {
         return scopeVariable;
     }
 
-    public void setHederNo(RichPanelHeader hederNo) {
-        this.hederNo = hederNo;
+    public String getCurrentBomNumber() {
+        // Logic to retrieve current BOM number
+        return "CURRENT_BOM_NUMBER"; // Placeholder
     }
 
-    public RichPanelHeader getHederNo() {
-        return hederNo;
+    @Transactional
+    public Object getAttachments() {
+        // Logic to fetch attachments
+        return "Attachments"; // Placeholder
     }
+}
 
-    public void setHederno2(RichInputListOfValues hederno2) {
-        this.hederno2 = hederno2;
+
+yaml
+# application.yml
+spring:
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:xe
+    username: your_username
+    password: your_password
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+
+
+// Main Application Class
+package com.example.demo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class DemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
     }
-
-    public RichInputListOfValues getHederno2() {
-        return hederno2;
-    }
-    
-    public String callAttachment() throws IOException {
-      
-        String doc= null;     
-        BindingContext bindingContext = BindingContext.getCurrent(); 
-        DCDataControl dc = bindingContext.findDataControl("AppModuleDataControl"); //
-        ApplicationModule am  = dc.getApplicationModule() ;
-        ViewObject findViewObject = am.findViewObject("CustMnjOntBomHeaderView1");
-        
-        try {
-            doc = findViewObject.getCurrentRow().getAttribute("BomNumber").toString();
-        } catch (Exception e) {
-            // TODO: Add catch code
-            ;
-        }    
-      
-      //.....................changing.....................//
-//            String newPage =
-//                "http://192.168.200.115:7003/FileUploading-ViewController-context-root/faces/view1?doc=MB&docNo="+doc;
-//            // String newPage = "http://localhost:7101/PurchaseMemo-ViewController-context-root/faces/SearchPG?headerId="+getBomId().getValue();
-//            FacesContext ctx = FacesContext.getCurrentInstance();
-//            ExtendedRenderKitService erks =
-//                Service.getService(ctx.getRenderKit(), ExtendedRenderKitService.class);
-//            String url = "window.open('" + newPage + "','_self');";
-//            erks.addScript(FacesContext.getCurrentInstance(), url);
-//            
-//            
-//        FacesContext fc = FacesContext.getCurrentInstance();
-//        HttpServletResponse response = (HttpServletResponse)fc.getExternalContext().getResponse();
-//        response.sendRedirect("/FileUploading-ViewController-context-root/faces/view1?doc=MB&docNo="+doc);
-//        fc.responseComplete();
-//        
-             String newPage =
-                 "http://192.168.200.115:7003/FileUploading-ViewController-context-root/faces/view1?doc=CD_Invoice_No&docNo="+doc;
-             // String newPage = "http://localhost:7101/PurchaseMemo-ViewController-context-root/faces/SearchPG?headerId="+getBomId().getValue();
-             FacesContext ctx = FacesContext.getCurrentInstance();
-             ExtendedRenderKitService erks = Service.getService(ctx.getRenderKit(), ExtendedRenderKitService.class);
-             String url = "window.open('" + newPage + "','_blank','toolbar=no,location=no,menubar=no,alwaysRaised=yes,height=500,width=1100');";
-             erks.addScript(FacesContext.getCurrentInstance(), url);
-//..................changing END.............................////
-
-        return null;
-    }
-
-    public void goPrAction(ActionEvent actionEvent) {
-        // Add event code here...
-        FacesContext fctx = FacesContext.getCurrentInstance();
-        ExternalContext ectx = fctx.getExternalContext();
-        HttpSession userSession = (HttpSession) ectx.getSession(false);
-        userSession.setAttribute("BOMNO",String.valueOf(getHederno2().getValue()));
-    }
-
-    public void setShowAttachText(RichOutputText showAttachText) {
-        this.showAttachText = showAttachText;
-    }
-
-    public RichOutputText getShowAttachText() {
-        return showAttachText;
-    }
-
-    public void AttachFetchListener(PopupFetchEvent popupFetchEvent) {
-        // Add event code here...
-        BindingContainer bindings = getBindings();
-             OperationBinding operationBinding =
-                 bindings.getOperationBinding("getAttachments");         
-
-             operationBinding.execute();
-             
-             if (!operationBinding.getErrors().isEmpty()) {
-                 System.out.println("errore-->");
-             }
-            Object methodReturnValue = operationBinding.getResult();       
-            showAttachText.setValue(methodReturnValue);
-            AdfFacesContext.getCurrentInstance().addPartialTarget(showAttachText);
-    }
-
-    public void CancelLsitener(PopupCanceledEvent popupCanceledEvent) {
-        // Add event code here...
-    }
-    
-    public BindingContainer getBindings() {
-           return BindingContext.getCurrent().getCurrentBindingsEntry();
-       }
-
 }
