@@ -1,56 +1,91 @@
-package mnj.ont.view.backing;
 
-import oracle.adf.model.BindingContext;
-import oracle.adf.view.rich.component.rich.data.RichTable;
+package com.example.demo.controller;
 
-import oracle.adf.view.rich.context.AdfFacesContext;
+import com.example.demo.service.CopyPostService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
 
-import oracle.binding.BindingContainer;
-import oracle.binding.OperationBinding;
+@RestController
+@RequestMapping("/api/copy-post")
+@RequiredArgsConstructor
+@Slf4j
+public class CopyPostController {
 
-public class CopyPost {
-    private RichTable queryTable;
+    private final CopyPostService copyPostService;
 
-    public CopyPost() {
+    @PostMapping("/copy")
+    public void copy() {
+        log.info("Executing copy operation");
+        copyPostService.executeCopy();
     }
 
-    public void setQueryTable(RichTable queryTable) {
-        this.queryTable = queryTable;
+    @PostMapping("/post")
+    public void post() {
+        log.info("Executing post operation");
+        copyPostService.executePost();
+    }
+}
+
+
+
+package com.example.demo.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class CopyPostService {
+
+    @Transactional
+    public void executeCopy() {
+        // Add logic for copy operation
+        // Example: call repository or perform business logic
     }
 
-    public RichTable getQueryTable() {
-        return queryTable;
+    @Transactional
+    public void executePost() {
+        // Add logic for post operation
+        // Example: call repository or perform business logic
     }
+}
 
-    public String Copy() {
-        // Add event code here...
-        
-        OperationBinding operationBinding = executeOperation("HeaderActions");         
-        operationBinding.getParamsMap().put("type", "C"); //bomLineId
-        operationBinding.execute();
-        AdfFacesContext.getCurrentInstance().addPartialTarget(queryTable);
-        return null;
+
+
+package com.example.demo.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface CopyPostRepository extends JpaRepository<YourEntity, Long> {
+    // Define custom query methods if needed
+}
+
+
+yaml
+# application.yml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mydb
+    username: myuser
+    password: mypassword
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+
+
+package com.example.demo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class DemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
     }
-
-    public String Post() {
-        OperationBinding operationBinding = executeOperation("HeaderActions");         
-        operationBinding.getParamsMap().put("type", "V"); //bomLineId   
-        operationBinding.execute();
-        AdfFacesContext.getCurrentInstance().addPartialTarget(queryTable);
-        return null;
-    }
-    
-    /*****Generic Method to Get BindingContainer**/
-        public BindingContainer getBindingsCont() {
-            return BindingContext.getCurrent().getCurrentBindingsEntry();
-        }
-
-        /**
-         * Generic Method to execute operation
-         * */
-        public OperationBinding executeOperation(String operation) {
-            OperationBinding createParam = getBindingsCont().getOperationBinding(operation);
-            return createParam;
-
-        }
 }

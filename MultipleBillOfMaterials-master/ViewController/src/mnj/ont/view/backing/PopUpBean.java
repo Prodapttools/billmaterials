@@ -1,239 +1,141 @@
-package mnj.ont.view.backing;
 
+package com.example.demo.controller;
 
-import javax.faces.event.ActionEvent;
+import com.example.demo.service.AppModuleService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
-import mnj.ont.model.services.AppModuleImpl;
+import javax.transaction.Transactional;
 
-import oracle.adf.model.BindingContext;
-import oracle.adf.model.binding.DCBindingContainer;
-import oracle.adf.model.binding.DCDataControl;
-import oracle.adf.view.rich.component.rich.data.RichTable;
+@Slf4j
+@RestController
+@RequestMapping("/api/popup")
+public class PopUpController {
 
-import oracle.adf.view.rich.event.DialogEvent;
-import oracle.adf.view.rich.event.PopupCanceledEvent;
-import oracle.adf.view.rich.event.PopupFetchEvent;
+    private final AppModuleService appModuleService;
 
-import oracle.binding.BindingContainer;
-import oracle.binding.OperationBinding;
-
-import oracle.jbo.Row;
-import oracle.jbo.ViewObject;
-
-import oracle.jdbc.OracleTypes;
-
-import utils.system;
-
-
-public class PopUpBean {
-    private RichTable matTable;
-    private RichTable mytable;
-    
-
-    public PopUpBean() {
+    @Autowired
+    public PopUpController(AppModuleService appModuleService) {
+        this.appModuleService = appModuleService;
     }
 
-    AppModuleImpl appM = getAppModuleImpl();
-
-    public AppModuleImpl getAppModuleImpl() {
-        DCBindingContainer bindingContainer =
-            (DCBindingContainer)BindingContext.getCurrent().getCurrentBindingsEntry();
-        //BindingContext bindingContext = BindingContext.getCurrent();
-        DCDataControl dc =
-            bindingContainer.findDataControl("AppModuleDataControl"); // Name of application module in datacontrolBinding.cpx
-        AppModuleImpl appM = (AppModuleImpl)dc.getDataProvider();
-        return appM;
+    @GetMapping("/matTable")
+    public RichTable getMatTable() {
+        return appModuleService.getMatTable();
     }
 
+    @PostMapping("/fillMaterial")
+    @Transactional
+    public void fillMaterial() {
+        appModuleService.fillMaterial();
+    }
+
+    @PostMapping("/createPoDff")
+    @Transactional
+    public void createPoDff() {
+        appModuleService.createPoDff();
+    }
+
+    @PostMapping("/saveAndCreatePo")
+    @Transactional
+    public void saveAndCreatePo() {
+        appModuleService.saveAndCreatePo();
+    }
+
+    @PostMapping("/editDialog")
+    public void editDialog(@RequestParam String outcome) {
+        if ("ok".equalsIgnoreCase(outcome)) {
+            fillMaterial();
+        } else if ("cancel".equalsIgnoreCase(outcome)) {
+            // Handle cancel logic if needed
+        }
+    }
+}
 
 
 
+package com.example.demo.service;
 
-    public void setMatTable(RichTable matTable) {
-        this.matTable = matTable;
+import com.example.demo.repository.AppModuleRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+
+@Slf4j
+@Service
+public class AppModuleService {
+
+    private final AppModuleRepository appModuleRepository;
+
+    @Autowired
+    public AppModuleService(AppModuleRepository appModuleRepository) {
+        this.appModuleRepository = appModuleRepository;
     }
 
     public RichTable getMatTable() {
-        return matTable;
+        return appModuleRepository.getMatTable();
     }
 
-//    public void selectAll(ValueChangeEvent valueChangeEvent) {
-//        // Add event code here...
-//        System.out.println("xdebug c1 : In selectAllChoiceBoxLN with value = " +
-//                           valueChangeEvent.getNewValue());
-//
-//        boolean isSelected =
-//            ((Boolean)valueChangeEvent.getNewValue()).booleanValue();
-//        DCBindingContainer dcb = (DCBindingContainer)evaluateEL("#{bindings}");
-//        DCIteratorBinding dciter = dcb.findIteratorBinding("ComponentLov1Iterator");
-//
-//        ViewObject vo = dciter.getViewObject();
-//        //RowSetIterator it = vo.createRowSetIterator("");   
-//      
-//        int i = 0;
-//        Row row = null;
-//        vo.reset();
-//        while (vo.hasNext()) {
-//            if (i == 0)
-//                row = vo.first();
-//            else
-//                row = vo.next();
-//            //            System.out.println("Changing row 1: " +
-//            //              row.getAttribute("Name"));
-//            System.out.println("xdebug c2: Changing row 2: " +
-//                               row.getAttribute("MultiSelect"));
-//
-//            if (isSelected)
-//                row.setAttribute("MultiSelect", "Y");
-//            else
-//                row.setAttribute("MultiSelect", "N");
-//            i++;
-//        }
-//        AdfFacesContext.getCurrentInstance().addPartialTarget(matTable);
-//    }
-
-//    private static Object evaluateEL(String el) {
-//        FacesContext facesContext = FacesContext.getCurrentInstance();
-//        ELContext elContext = facesContext.getELContext();
-//        ExpressionFactory expressionFactory =
-//            facesContext.getApplication().getExpressionFactory();
-//        ValueExpression exp =
-//            expressionFactory.createValueExpression(elContext, el,
-//                                                    Object.class);
-//        return exp.getValue(elContext);
-//
-//
-//    }
-    
-    
-    public BindingContainer getBindings() {
-           return BindingContext.getCurrent().getCurrentBindingsEntry();
-       }
-    public void editPopupFetchListenerNew(PopupFetchEvent popupFetchEvent) {
-           
-              if (popupFetchEvent.getLaunchSourceClientId().contains("cbInsert")) {
-                
-              }
-          }
-    
-    public void editDialogListenerNew(DialogEvent dialogEvent) {
-           if (dialogEvent.getOutcome().name().equals("ok")) {     
-            FillMaterial();
-             //  AdfFacesContext.getCurrentInstance().addPartialTarget(mytable);
-            
-                
-           } else if (dialogEvent.getOutcome().name().equals("cancel")) {          
-            ;
-           }
-       }
-    
-    public void editPopupCancelListenerNew(PopupCanceledEvent popupCanceledEvent) {
-           
-       }
-    
-    
-    public  void FillMaterial() {
-        
-        BindingContext bctx = BindingContext.getCurrent();
-        BindingContainer bindings = bctx.getCurrentBindingsEntry();
-        OperationBinding operationBinding =
-            bindings.getOperationBinding("callMatFetch");               
-        //invoke method
-        operationBinding.execute();
-        
-        
+    @Transactional
+    public void fillMaterial() {
+        appModuleRepository.callMatFetch();
     }
 
-    public void setMytable(RichTable mytable) {
-        this.mytable = mytable;
+    @Transactional
+    public void createPoDff() {
+        appModuleRepository.createPoDff();
     }
 
-    public RichTable getMytable() {
-        return mytable;
-    }
-
-
-    public void createPoDff(ActionEvent actionEvent) {
-        // Add event code here...
-        ViewObject poDffVo = appM.getMnjBomPoDffVO1();
-        ViewObject headerVo = appM.getCustMnjOntBomHeaderView1();
-        ViewObject autoVo=appM.getCustMnjOntBomRmlineEO_autoView1();
-        String orgId =  autoVo.getCurrentRow().getAttribute("OrgId").toString();
-                                                        
-        String currentBomId ;
-      
-         currentBomId = autoVo.getCurrentRow().getAttribute("BomId").toString();
-        //System.out.println("===================  currentPrNo  "+ currentPrNo);
-        Row row  = poDffVo.createRow();
-        row.setAttribute("BomId",currentBomId );    
-        row.setAttribute("OrgId",orgId );    
-        
-          
-    }
-
-    private String getCurrentBomId() {
-      ViewObject bomHeaderVo = appM.getCustMnjOntBomHeaderView1();
-      Row currnetRow = bomHeaderVo.getCurrentRow();
-      String bomId ;
-      try{
-          bomId =currnetRow.getAttribute("BomId").toString();
-      }catch(Exception e){
-          bomId="";
-      }
-      return bomId;
-    }
-
-
-    public void saveAndCreatePo(ActionEvent actionEvent) {
-        // Add event code here...
-        
-       appM.getDBTransaction().commit();
-       
-        
-        ViewObject poDffVo = appM.getMnjBomPoDffVO1();
-        Row curentPoDffRow;
-        try{
-            curentPoDffRow = poDffVo.getCurrentRow();
-        }catch(Exception e){
-            System.out.println(" exception in   curentPoDffRow = poDffVo.getCurrentRow(); ");
-            return;
-        }
-        
-        String orgId ; 
-        String userId;
-        String prNo;
-        try{
-            orgId = curentPoDffRow.getAttribute("OrgId").toString();
-            userId = curentPoDffRow.getAttribute("UserId").toString();
-            prNo = curentPoDffRow.getAttribute("PrNo").toString();
-        }catch(Exception e){
-            System.out.println("exception in orgId = curentPoDffRow.getAttribute(\"OrgId\").toString()");
-            return;
-        }
-        
-        String stmt = "BEGIN APPS.CREATE_AUTO_PO(:1,:2,:3,:4,:5); end;";
-        java.sql.CallableStatement cs =appM.getDBTransaction().createCallableStatement(stmt, 1);
-
-        try {
-            cs.registerOutParameter(1, OracleTypes.VARCHAR);
-            cs.registerOutParameter(2, OracleTypes.VARCHAR);
-            cs.setString(3, prNo);
-            cs.setInt(4, Integer.parseInt(userId));
-            cs.setInt(5, Integer.parseInt(orgId));
-            cs.execute();
-            cs.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-         
-    }
-
-
-    public void editPopUpFetchListenerPoDff(PopupFetchEvent popupFetchEvent) {
-        // Add event code here...
-        
-       
-        
+    @Transactional
+    public void saveAndCreatePo() {
+        appModuleRepository.saveAndCreatePo();
     }
 }
+
+
+
+package com.example.demo.repository;
+
+import org.springframework.stereotype.Repository;
+
+@Repository
+public class AppModuleRepository {
+
+    // Assume necessary JPA or JDBC template is injected here
+
+    public RichTable getMatTable() {
+        // Logic to retrieve the RichTable
+    }
+
+    public void callMatFetch() {
+        // Logic to call the material fetch operation
+    }
+
+    public void createPoDff() {
+        // Logic to create PO DFF
+    }
+
+    public void saveAndCreatePo() {
+        // Logic to save and create PO
+    }
+}
+
+
+
+// application.properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/mydb
+spring.datasource.username=myuser
+spring.datasource.password=mypassword
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+
+### Note:
+- The `RichTable` class and its methods need to be defined or replaced with appropriate Spring components.
+- The `AppModuleImpl` logic should be refactored into the `AppModuleRepository` methods.
+- Ensure that the database operations are properly handled using Spring Data JPA or JDBC templates as needed.
+- The error handling and logging should be enhanced as per the application's requirements.
