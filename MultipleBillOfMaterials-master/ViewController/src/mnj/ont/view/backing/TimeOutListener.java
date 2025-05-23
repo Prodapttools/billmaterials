@@ -1,75 +1,59 @@
-package mnj.ont.view.backing;
 
-import javax.faces.context.ExternalContext;
-import javax.faces.context.FacesContext;
-import javax.faces.event.PhaseId;
+package com.company.module.listener;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import oracle.adf.controller.v2.lifecycle.Lifecycle;
-import oracle.adf.controller.v2.lifecycle.PagePhaseEvent;
-import oracle.adf.controller.v2.lifecycle.PagePhaseListener;
 
-import org.apache.myfaces.trinidad.render.ExtendedRenderKitService;
-import org.apache.myfaces.trinidad.util.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
-public class TimeOutListener implements PagePhaseListener {
-    
-    @SuppressWarnings("compatibility:-1406793285197613021")
-    private static final long serialVersionUID = 1L;    
+@Component
+public class TimeOutListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(TimeOutListener.class);
+    private static final String APP_URL = "http://test.adfexpiresession/";
+
     public TimeOutListener() {
         super();
     }
-    
-    /**
-       * This method determines whether session timed out or not,
-       * If session timed out , redirects to corresponding Apps Login page
-       * based on configured properties file
-       * @param phaseEvent
-       */
-      public void beforePhase(PagePhaseEvent phaseEvent) {
-      }    
-    public void afterPhase(PagePhaseEvent pagePhaseEvent) {
-           if (pagePhaseEvent.getPhaseId() == Lifecycle.PREPARE_RENDER_ID) {
-               FacesContext facesCtx = FacesContext.getCurrentInstance();
-               ExternalContext extCtx = facesCtx.getExternalContext();
-               // Get HttpSession instance
-               HttpSession session = (HttpSession)extCtx.getSession(false);
-               // Get HttpServletRequest instance
-               HttpServletRequest req =
-                   (HttpServletRequest)extCtx.getRequest();
-               if (session != null) {
-                   int secsTimeout = session.getMaxInactiveInterval();
-                   if (secsTimeout > 0) {
-                       String appURL ="http://test.adfexpiresession/";
-                       secsTimeout += 2;
-                       String jsCall =
-                           "document.acmeStartClientSessionTimers = function()\n" +
-                           "{\n" +
-                           "  if(document.acmeSessionTimeoutTimer != null)\n" +
-                           "    window.clearTimeout(document.acmeSessionTimeoutTimer);\n" +
-                           "\n" +
-                           "  document.acmeSessionTimeoutTimer = window.setTimeout(\"document.acmeClientSessionTimeout();\", " +
-                           secsTimeout * 100000 + ");\n" +
-                           "\n" +
-                           "}\n" +
-                           "document.acmeStartClientSessionTimers();\n" +
-                           "\n" +
-                           "document.acmeClientSessionTimeout = function()\n" +
-                           "{\n" +
-                           "    window.location.href = '" + appURL + "' \n" +
-                           "}";
 
-                       ExtendedRenderKitService rks =
-                           Service.getRenderKitService(facesCtx,
-                                                       ExtendedRenderKitService.class);
-                       rks.addScript(facesCtx, jsCall);
-                   }
-               }
-           }
-       }
+    public void checkSessionTimeout() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                int secsTimeout = session.getMaxInactiveInterval();
+                if (secsTimeout > 0) {
+                    secsTimeout += 2;
+                    String jsCall = "document.acmeStartClientSessionTimers = function()\n" +
+                            "{\n" +
+                            "  if(document.acmeSessionTimeoutTimer != null)\n" +
+                            "    window.clearTimeout(document.acmeSessionTimeoutTimer);\n" +
+                            "\n" +
+                            "  document.acmeSessionTimeoutTimer = window.setTimeout(\"document.acmeClientSessionTimeout();\", " +
+                            secsTimeout * 1000 + ");\n" +
+                            "\n" +
+                            "}\n" +
+                            "document.acmeStartClientSessionTimers();\n" +
+                            "\n" +
+                            "document.acmeClientSessionTimeout = function()\n" +
+                            "{\n" +
+                            "    window.location.href = '" + APP_URL + "' \n" +
+                            "}";
 
-       public PhaseId getPhaseId() {
-           return PhaseId.RESTORE_VIEW;  
-           } 
+                    // Assuming a method to add script to the response
+                    addScriptToResponse(jsCall);
+                }
+            }
+        }
     }
 
+    private void addScriptToResponse(String script) {
+        // Implementation to add the script to the response
+        logger.info("Adding script to response: {}", script);
+    }
+}

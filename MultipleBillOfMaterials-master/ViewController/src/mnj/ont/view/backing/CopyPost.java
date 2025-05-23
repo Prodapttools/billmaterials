@@ -1,56 +1,52 @@
-package mnj.ont.view.backing;
 
-import oracle.adf.model.BindingContext;
-import oracle.adf.view.rich.component.rich.data.RichTable;
+package com.company.module.controller;
 
-import oracle.adf.view.rich.context.AdfFacesContext;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import oracle.binding.BindingContainer;
-import oracle.binding.OperationBinding;
+import javax.transaction.Transactional;
 
+@Slf4j
+@RestController
+@RequestMapping("/copyPost")
 public class CopyPost {
-    private RichTable queryTable;
 
-    public CopyPost() {
+    private final QueryTableService queryTableService;
+
+    @Autowired
+    public CopyPost(QueryTableService queryTableService) {
+        this.queryTableService = queryTableService;
     }
 
-    public void setQueryTable(RichTable queryTable) {
-        this.queryTable = queryTable;
+    @PostMapping("/copy")
+    @Transactional
+    public void copy() {
+        log.info("Executing copy operation");
+        queryTableService.executeOperation("HeaderActions", "C");
     }
 
-    public RichTable getQueryTable() {
-        return queryTable;
+    @PostMapping("/post")
+    @Transactional
+    public void post() {
+        log.info("Executing post operation");
+        queryTableService.executeOperation("HeaderActions", "V");
     }
+}
 
-    public String Copy() {
-        // Add event code here...
-        
-        OperationBinding operationBinding = executeOperation("HeaderActions");         
-        operationBinding.getParamsMap().put("type", "C"); //bomLineId
-        operationBinding.execute();
-        AdfFacesContext.getCurrentInstance().addPartialTarget(queryTable);
-        return null;
+
+
+package com.company.module.service;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class QueryTableService {
+
+    public void executeOperation(String operation, String type) {
+        // Logic to execute the operation and update the query table
+        // This is a placeholder for the actual implementation
     }
-
-    public String Post() {
-        OperationBinding operationBinding = executeOperation("HeaderActions");         
-        operationBinding.getParamsMap().put("type", "V"); //bomLineId   
-        operationBinding.execute();
-        AdfFacesContext.getCurrentInstance().addPartialTarget(queryTable);
-        return null;
-    }
-    
-    /*****Generic Method to Get BindingContainer**/
-        public BindingContainer getBindingsCont() {
-            return BindingContext.getCurrent().getCurrentBindingsEntry();
-        }
-
-        /**
-         * Generic Method to execute operation
-         * */
-        public OperationBinding executeOperation(String operation) {
-            OperationBinding createParam = getBindingsCont().getOperationBinding(operation);
-            return createParam;
-
-        }
 }
